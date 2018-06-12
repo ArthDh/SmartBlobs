@@ -9,7 +9,7 @@
 # TODO
 - [] Use tensorflow.js as brain.
 - [] Implement better selection technique.
-- [] Implement better fitness function.
+- [x] Implement better fitness function.
 
 ## Acknowledgments
 
