@@ -1,6 +1,5 @@
 // Using genetic algorithm
 
-
 var timesteps = 300;
 var count = 0;
 var gen =1;
@@ -8,11 +7,18 @@ var population;
 var pop_size = 100;
 var target;
 var maxfit =0;
+var prev_maxfit=0;
 var obstacle =[];
 var rx = 150;
 var ry=150;
 var rw = 300;
 var rh =10;
+var min_reached_at =300;
+
+var max_error =15;
+var magnitude =0.2;
+var m_rate = 0.01;
+var errorSlider, magnitudeSlider, mutationSlider;
 
 // TODO: Add more obstacles
 
@@ -21,9 +27,12 @@ function setup() {
     population = new Population(pop_size);
     target = createVector(width/2, 25);
     obstacle.push([rx,ry,rw,rh]);
-
-
-
+    // errorSlider = createSlider(0, 20, max_error,1);
+    // errorSlider.position(20, height-80);
+    // magnitudeSlider = createSlider(0, 1,magnitude, 0.05);
+    // magnitudeSlider.position(20, height-60);
+    // mutationSlider = createSlider(0, 1, m_rate, 0.05);
+    // mutationSlider.position(20, height-40);
 }
 
 function draw(){
@@ -41,25 +50,36 @@ function draw(){
     text("Generation: "+gen, 10,40);
     text("Max Fitness: "+maxfit, 10,60);
 
+    // text("Error allowed ", errorSlider.x * 2 + errorSlider.width,height-70);
+    // text("Magnitude ", magnitudeSlider.x * 2 + magnitudeSlider.width, height-50);
+    // text("Mutation percentage", mutationSlider.x * 2 + mutationSlider.width, height-30);
+    // magnitude = magnitudeSlider.value();
+    // // console.log(magnitude);
+    // m_rate = mutationSlider.value();
+    // max_error = errorSlider.value();
+
     population.run();
-    // perReachedP.html("Percentage completed: "+(perReached/pop_size)*100+"%");
     if(count==timesteps){
-
     maxfit = population.evaluate();
-
     population.norm();
-    population.selection();
+    // console.log(maxfit, prev_maxfit);
+    if(maxfit==prev_maxfit&&maxfit<1){
+        population.selection(m_rate);
+        if(m_rate<=0.02){
+        m_rate+= 0.005;
+        }
+    }else{
+        population.selection(m_rate);
+        prev_maxfit = maxfit;
+    }
     gen +=1;
     count = 0;
-    perReached =0;
     }
 }
 
 class Blob{
     constructor(child_genes){
-//         if(child_genes){    console.log(child_genes[0]);
-// }
-    this.pos = createVector(width/2, height);
+    this.pos = createVector(width/2, height-10);
     this.vel = createVector(0,-1);
     this.acc = createVector();
     if(child_genes){
@@ -73,10 +93,11 @@ class Blob{
     if(child_genes){
         this.dna.genes = child_genes[0];
     }else{
-    this.dna = new DNA(timesteps);
+    this.dna = new DNA(timesteps,magnitude);
     }
     this.d = 0;
     this.crashed = false;
+    this.reached_target_at = 0;
     }
 
     applyForce(force)
@@ -86,7 +107,7 @@ class Blob{
 
     update()
     {
-        if(Math.abs(this.pos.x-target.x)<10 && Math.abs(this.pos.y-target.y)<10)
+        if(Math.abs(this.pos.x-target.x)<max_error && Math.abs(this.pos.y-target.y)<max_error)
         {
             this.reached_target = true;
         }
@@ -97,31 +118,45 @@ class Blob{
         //         this.crashed = true;
         //     }
         // }
-        if(this.pos.x>rx && this.pos.x<rx+rw && this.pos.y>ry && this.pos.y<ry+rh)
+        if(this.pos.x>rx-this.size/2 && this.pos.x<rx+rw+this.size/2 && this.pos.y>ry-this.size/2 && this.pos.y<ry+rh+this.size/2)
         {
-            this.crashed = true;
-        }
-        if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height || this.crashed ==true ){
             this.pos.x = this.pos.x;
             this.pos.y = this.pos.y;
+            this.crashed = true;
+        }
+        // Changed:  || this.crashed ==true
+        if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height ){
+            this.pos.x = this.pos.x;
+            this.pos.y = this.pos.y;
+            this.crashed = true;
         }
         if(this.reached_target)
         {
             this.pos.x = target.x;
             this.pos.y = target.y;
-            // console.log("Occured");
         }
         if(!this.reached_target && !this.crashed){
         this.applyForce(this.dna.genes[count]);
         this.vel.add(this.acc);
         this.pos.add(this.vel);
         this.acc.mult(0);
+        this.reached_target_at += 1;
         }
     }
 
     show()
     {
         if(this.reached_target){
+            // console.log("occured");
+            push();
+            translate(this.pos.x,this.pos.y);
+            rotate(this.vel.heading());
+            noStroke();
+            fill(this.color[0],this.color[1],this.color[2],100);
+            ellipse(0,0,this.size);
+            pop();
+        }
+        if(this.crashed){
             push();
             translate(this.pos.x,this.pos.y);
             rotate(this.vel.heading());
@@ -129,8 +164,8 @@ class Blob{
             fill(this.color[0],this.color[1],this.color[2],125);
             ellipse(0,0,this.size);
             pop();
-
         }
+
         else{
         push();
         translate(this.pos.x,this.pos.y);
@@ -145,17 +180,18 @@ class Blob{
     get_fitness()
     {
          this.d = dist(this.pos.x,this.pos.y, target.x,target.y);
-        this.fitness = 1/ Math.exp(this.d); //This is the fastest
-        // this.fitness = 1/ this.d; //This is the Slowest
-        // this.fitness = 1/ this.d**2; //Faster than 1/d
 
-        if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height ||this.crashed ==true){
-            this.fitness -=0.5;
-        }
-        if(this.pos.x-target.x<10 &&this.pos.y-target.y<10)
-        {
+         this.fitness = 1/ Math.exp(this.d);
+         if(this.reached_target && this.reached_target_at < min_reached_at)
+         {
+            // console.log("reached_target_at :"+this.reached_target_at);
             this.fitness *= 1.25;
+            min_reached_at = this.reached_target_at;
+         }
+         if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height ||this.crashed ==true){
+            this.fitness -=0.75;
         }
+
         if(this.fitness<0)
         {
             this.fitness = 0;
@@ -208,7 +244,7 @@ class Blob{
     for (var i =0;i<this.dna.genes.length;i++) {
             if (random(1)<rate){
             this.dna.genes[i] = p5.Vector.random2D();
-            this.dna.genes[i].setMag(0.2);
+            this.dna.genes[i].setMag(magnitude);
             this.color = [this.color[0],this.color[1],random(255)];
             }
         }
