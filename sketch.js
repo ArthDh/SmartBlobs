@@ -1,10 +1,10 @@
 // Using genetic algorithm
 
-var timesteps = 300;
+var timesteps = 300; //try 150
 var count = 0;
 var gen =1;
 var population;
-var pop_size = 100;
+var pop_size = 200;  //try 50
 var target;
 var maxfit =0;
 var prev_maxfit=0;
@@ -15,8 +15,8 @@ var rw = 300;
 var rh =10;
 var min_reached_at =300;
 
-var max_error =15;
-var magnitude =0.2;
+var max_error =10;
+var magnitude =0.2; //Try 0.7
 var m_rate = 0.01;
 var errorSlider, magnitudeSlider, mutationSlider;
 
@@ -44,6 +44,7 @@ function draw(){
     ellipse(target.x, target.y, 25);
     count++;
 
+    // console.log(dist(mouseX,mouseY, target.x,target.y));
     noStroke();
     fill(0);
     text("Timesteps: "+count, 10, 20);
@@ -63,7 +64,7 @@ function draw(){
     maxfit = population.evaluate();
     population.norm();
     // console.log(maxfit, prev_maxfit);
-    if(maxfit==prev_maxfit&&maxfit<1){
+    if(maxfit==prev_maxfit&&maxfit<0.8){
         population.selection(m_rate);
         if(m_rate<=0.02){
         m_rate+= 0.005;
@@ -107,7 +108,7 @@ class Blob{
 
     update()
     {
-        if(Math.abs(this.pos.x-target.x)<max_error && Math.abs(this.pos.y-target.y)<max_error)
+        if(dist(this.pos.x,this.pos.y, target.x,target.y)<max_error)
         {
             this.reached_target = true;
         }
@@ -118,18 +119,13 @@ class Blob{
         //         this.crashed = true;
         //     }
         // }
-        if(this.pos.x>rx-this.size/2 && this.pos.x<rx+rw+this.size/2 && this.pos.y>ry-this.size/2 && this.pos.y<ry+rh+this.size/2)
+        if((this.pos.x>rx-this.size/2 && this.pos.x<rx+rw+this.size/2 && this.pos.y>ry-this.size/2 && this.pos.y<ry+rh+this.size/2) || (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height) )
         {
             this.pos.x = this.pos.x;
             this.pos.y = this.pos.y;
             this.crashed = true;
         }
         // Changed:  || this.crashed ==true
-        if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height ){
-            this.pos.x = this.pos.x;
-            this.pos.y = this.pos.y;
-            this.crashed = true;
-        }
         if(this.reached_target)
         {
             this.pos.x = target.x;
@@ -179,25 +175,42 @@ class Blob{
 
     get_fitness()
     {
-        this.d = dist(this.pos.x,this.pos.y, target.x,target.y);
-        this.fitness = 1/ Math.exp(this.d); //This is the fastest
-        // this.fitness = 1/ this.d; //This is the Slowest
-        // this.fitness = 1/ this.d**2; //Faster than 1/d
+         this.d = dist(this.pos.x,this.pos.y, target.x,target.y);
+         this.fitness = 10*(1/(this.d**2));
+         if(this.reached_target){
+            this.fitness =0.8;
+         }
+         else if(this.reached_target_at!=timesteps){
+            this.fitness += 3*((1/this.d)/(timesteps-this.reached_target_at));
+         }
 
-        if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height ||this.crashed ==true){
-            this.fitness -=0.5;
-        }
-        if(this.pos.x-target.x<max_error &&this.pos.y-target.y<max_error)
-        {
-            this.fitness *= 1.25;
-        }
-        if(this.fitness<0)
-        {
-            this.fitness = 0;
-        }
+         if(this.reached_target_at<min_reached_at){
+            min_reached_at = this.reached_target_at;
+            this.fitness = 1;
+         }
+
+         if(this.crashed){
+            this.fitness =0;
+         }
 
         return this.fitness;
     }
+    //  this.fitness = 1/ Math.exp(this.d);
+        //  if(this.reached_target && this.reached_target_at < min_reached_at)
+        //  {
+        //     // console.log("reached_target_at :"+this.reached_target_at);
+        //     this.fitness *= 1.25;
+        //     min_reached_at = this.reached_target_at;
+        //  }
+        //  if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height ||this.crashed ==true){
+        //     this.fitness -=0.75;
+        // }
+
+        // if(this.fitness<0)
+        // {
+        //     this.fitness = 0;
+        // }
+
 
     crossover(parentB)
     {
