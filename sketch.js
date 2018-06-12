@@ -97,7 +97,7 @@ class Blob{
         //         this.crashed = true;
         //     }
         // }
-        if(this.pos.x+this.size>rx && this.pos.x<rx+rw+this.size && this.pos.y>ry+this.size && this.pos.y<ry+rh +this.size)
+        if(this.pos.x>rx && this.pos.x<rx+rw && this.pos.y>ry && this.pos.y<ry+rh)
         {
             this.crashed = true;
         }
