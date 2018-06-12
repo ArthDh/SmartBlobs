@@ -179,19 +179,18 @@ class Blob{
 
     get_fitness()
     {
-         this.d = dist(this.pos.x,this.pos.y, target.x,target.y);
+        this.d = dist(this.pos.x,this.pos.y, target.x,target.y);
+        this.fitness = 1/ Math.exp(this.d); //This is the fastest
+        // this.fitness = 1/ this.d; //This is the Slowest
+        // this.fitness = 1/ this.d**2; //Faster than 1/d
 
-         this.fitness = 1/ Math.exp(this.d);
-         if(this.reached_target && this.reached_target_at < min_reached_at)
-         {
-            // console.log("reached_target_at :"+this.reached_target_at);
-            this.fitness *= 1.25;
-            min_reached_at = this.reached_target_at;
-         }
-         if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height ||this.crashed ==true){
-            this.fitness -=0.75;
+        if (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height ||this.crashed ==true){
+            this.fitness -=0.5;
         }
-
+        if(this.pos.x-target.x<max_error &&this.pos.y-target.y<max_error)
+        {
+            this.fitness *= 1.25;
+        }
         if(this.fitness<0)
         {
             this.fitness = 0;
