@@ -1,3 +1,4 @@
+
 class Population{
     constructor(size){
         this.maxfit = 0;
@@ -41,6 +42,10 @@ class Population{
         // }
     }
 
+    getel(i){
+        return this.blobs_pop[i];
+
+    }
     selection(m_rate){
         var new_pop =[];
 
@@ -69,3 +74,4 @@ class Population{
         this.blobs_pop = new_pop;
     }
 }
+
