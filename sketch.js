@@ -4,7 +4,7 @@ var timesteps = 300; //try 150
 var count = 0;
 var gen =1;
 var population;
-var pop_size = 200;  //try 50
+var pop_size =200;  //try 50
 var target;
 var maxfit =0;
 var prev_maxfit=0;
@@ -19,6 +19,7 @@ var max_error =10;
 var magnitude =0.2; //Try 0.7
 var m_rate = 0.01;
 var errorSlider, magnitudeSlider, mutationSlider;
+var mouseError = 20;
 
 // TODO: Add more obstacles
 
@@ -65,7 +66,12 @@ function draw(){
     population.norm();
     // console.log(maxfit, prev_maxfit);
     if(maxfit==prev_maxfit&&maxfit<0.8){
-        population.selection(m_rate);
+        if(maxfit==1){
+            // Pure breeds ?
+            population.selection(0);
+        }else{
+            population.selection(m_rate);
+        }
         if(m_rate<=0.02){
         m_rate+= 0.005;
         }
@@ -108,6 +114,7 @@ class Blob{
 
     update()
     {
+
         if(dist(this.pos.x,this.pos.y, target.x,target.y)<max_error)
         {
             this.reached_target = true;
@@ -153,6 +160,7 @@ class Blob{
             pop();
         }
         if(this.crashed){
+            min_reached_at = 300;
             push();
             translate(this.pos.x,this.pos.y);
             rotate(this.vel.heading());
@@ -178,16 +186,21 @@ class Blob{
          this.d = dist(this.pos.x,this.pos.y, target.x,target.y);
          this.fitness = 10*(1/(this.d**2));
          if(this.reached_target){
-            this.fitness =0.8;
+            this.fitness =1;
          }
          else if(this.reached_target_at!=timesteps){
-            this.fitness += 3*((1/this.d)/(timesteps-this.reached_target_at));
+            this.fitness += 3*((1/this.d)/(this.reached_target_at));
          }
 
          if(this.reached_target_at<min_reached_at){
             min_reached_at = this.reached_target_at;
             this.fitness = 1;
          }
+
+         // if(dist(this.pos.x,this.pos.y, mouseX,mouseY)< 10){
+         //    // this.fitness =1;
+         //    console.log("Occured");
+         // }
 
          if(this.crashed){
             this.fitness =0;
@@ -261,4 +274,21 @@ class Blob{
             }
         }
     }
+
+    clicked(){
+        this.fitness = 1;
+        console.log("Occured");
+    }
+
+}
+
+// Enabled helping blobs using mouse
+function mousePressed() {
+    for(var i =0;i<pop_size;i++){
+        if(dist(population.getel(i).pos.x,population.getel(i).pos.y, mouseX,mouseY)< mouseError)
+        {
+            population.getel(i).clicked();
+        }
+    }
+
 }
