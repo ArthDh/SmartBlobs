@@ -4,11 +4,11 @@ var timesteps = 300; //try 150
 var count = 0;
 var gen =1;
 var population;
-var pop_size =200;  //try 50
+var pop_size =20;  //try 50
 var target;
 var maxfit =0;
 var prev_maxfit=0;
-var obstacle =[];
+var obstacles =[];
 var rx = 150;
 var ry=150;
 var rw = 300;
@@ -18,70 +18,96 @@ var min_reached_at =300;
 var max_error =10;
 var magnitude =0.2; //Try 0.7
 var m_rate = 0.01;
-var errorSlider, magnitudeSlider, mutationSlider;
+var errorSlider, magnitudeSlider, mutationSlider,slider;
 var mouseError = 20;
-
+var multiplier =1;
+var prev_slider_value = 1;
 // TODO: Add more obstacles
+var n_obstacles=5;
 
 function setup() {
     createCanvas(600,400);
     population = new Population(pop_size);
     target = createVector(width/2, 25);
-    obstacle.push([rx,ry,rw,rh]);
-    // errorSlider = createSlider(0, 20, max_error,1);
-    // errorSlider.position(20, height-80);
+    for (var i = 0; i < n_obstacles; i++) {
+        // Check for overlapping
+        let rx = random(50,300);
+        let ry = random(50,300);
+        let rw = random(100,250);
+        let rh = random(10,15);
+        obstacles.push(new Obstacle(rx,ry,rw,rh));
+    }
+
+    slider = createSlider(1, 100, 1);
+    slider.position(20, height+80);
     // magnitudeSlider = createSlider(0, 1,magnitude, 0.05);
     // magnitudeSlider.position(20, height-60);
     // mutationSlider = createSlider(0, 1, m_rate, 0.05);
     // mutationSlider.position(20, height-40);
 }
 
+
+
 function draw(){
-    background(150);
-    fill(0);
-    noStroke();
-    // rect(obstacle[0][0],obstacle[0][1],obstacle[0][2],obstacle[0][3]);
-    rect(rx,ry,rw,rh);
-    ellipse(target.x, target.y, 25);
-    count++;
+
 
     // console.log(dist(mouseX,mouseY, target.x,target.y));
-    noStroke();
-    fill(0);
-    text("Timesteps: "+count, 10, 20);
-    text("Generation: "+gen, 10,40);
-    text("Max Fitness: "+maxfit, 10,60);
 
-    // text("Error allowed ", errorSlider.x * 2 + errorSlider.width,height-70);
+
     // text("Magnitude ", magnitudeSlider.x * 2 + magnitudeSlider.width, height-50);
     // text("Mutation percentage", mutationSlider.x * 2 + mutationSlider.width, height-30);
     // magnitude = magnitudeSlider.value();
     // // console.log(magnitude);
     // m_rate = mutationSlider.value();
     // max_error = errorSlider.value();
+    for(var c=0;c<prev_slider_value;c++)
+    {
+      population.update();
+      if(count==timesteps){
+      maxfit = population.evaluate();
+      population.norm();
+      // console.log(maxfit, prev_maxfit);
+      if(maxfit==1){
+              // Pure breeds ?
+              population.selection(0);
+          }else{
+          if(maxfit==prev_maxfit&&maxfit<0.8){
 
-    population.run();
-    if(count==timesteps){
-    maxfit = population.evaluate();
-    population.norm();
-    // console.log(maxfit, prev_maxfit);
-    if(maxfit==prev_maxfit&&maxfit<0.8){
-        if(maxfit==1){
-            // Pure breeds ?
-            population.selection(0);
-        }else{
-            population.selection(m_rate);
-        }
-        if(m_rate<=0.02){
-        m_rate+= 0.005;
-        }
-    }else{
-        population.selection(m_rate);
-        prev_maxfit = maxfit;
+              population.selection(m_rate);
+              if(m_rate<=0.02){
+              m_rate+= 0.005;
+              }
+          }else{
+              population.selection(m_rate);
+              prev_maxfit = maxfit;
+          }
+      }
+      gen +=1;
+      count = 0;
+      prev_slider_value = slider.value();
+      }
+      count++;
     }
-    gen +=1;
-    count = 0;
+
+
+    background(150);
+    fill(0);
+    noStroke();
+    // rect(obstacle[0][0],obstacle[0][1],obstacle[0][2],obstacle[0][3]);
+    // rect(rx,ry,rw,rh);
+    ellipse(target.x, target.y, 25);
+    for (var i = 0; i < n_obstacles; i++) {
+        obstacles[i].show();
     }
+    population.show();
+    noStroke();
+    fill(0);
+    text("Timesteps: "+count, 10, 20);
+    text("Generation: "+gen, 10,40);
+    text("Max Fitness: "+maxfit, 10,60);
+    text("Time multiplier: "+slider.value()+"x",10,80);
+
+
 }
 
 class Blob{
@@ -120,13 +146,15 @@ class Blob{
             this.reached_target = true;
         }
 
-        // for (var i =0;i<obstacle.length;i++) {
-        //     if(this.pos.x+this.size>obstacle[i][0] && this.pos.x<obstacle[i][2]+obstacle[i][0] +this.size&& this.pos.y>obstacle[i][1]+this.size && this.pos.y<obstacle[i][3]+obstacle[i][1] +this.size)
-        //     {
-        //         this.crashed = true;
-        //     }
-        // }
-        if((this.pos.x>rx-this.size/2 && this.pos.x<rx+rw+this.size/2 && this.pos.y>ry-this.size/2 && this.pos.y<ry+rh+this.size/2) || (this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height) )
+        for (var i = 0; i <n_obstacles ; i++)
+        {
+          if(getObs(i).blobCrashed(this)){
+            this.crashed = true;
+            this.pos.x = this.pos.x;
+            this.pos.y = this.pos.y;
+            }
+        }
+        if(this.pos.x<0 ||this.pos.x>width ||this.pos.y<0 ||this.pos.y>height)
         {
             this.pos.x = this.pos.x;
             this.pos.y = this.pos.y;
@@ -145,6 +173,7 @@ class Blob{
         this.acc.mult(0);
         this.reached_target_at += 1;
         }
+
     }
 
     show()
@@ -203,7 +232,7 @@ class Blob{
          // }
 
          if(this.crashed){
-            this.fitness =0;
+            this.fitness =0.000000001;
          }
 
         return this.fitness;
@@ -257,7 +286,7 @@ class Blob{
         }
         if (new_genes==undefined){
             new_genes = this.dna.genes;
-            console.log("error occured");
+            // console.log("error occured");
         }
         // console.log(child_color);
         return([new_genes, child_color]);
@@ -265,30 +294,57 @@ class Blob{
     }
 
     mutate(rate){
+        if(rate==0){
+            // console.log("Occured");
 
-    for (var i =0;i<this.dna.genes.length;i++) {
+        }else{
+                for (var i =0;i<this.dna.genes.length;i++) {
             if (random(1)<rate){
             this.dna.genes[i] = p5.Vector.random2D();
             this.dna.genes[i].setMag(magnitude);
             this.color = [this.color[0],this.color[1],random(255)];
             }
         }
+        }
+
+
     }
 
-    clicked(){
-        this.fitness = 1;
-        console.log("Occured");
-    }
+    // clicked(){
+    //     this.fitness = 1;
+    //     console.log("Occured");
+    // }
 
 }
 
 // Enabled helping blobs using mouse
 function mousePressed() {
-    for(var i =0;i<pop_size;i++){
-        if(dist(population.getel(i).pos.x,population.getel(i).pos.y, mouseX,mouseY)< mouseError)
-        {
-            population.getel(i).clicked();
-        }
-    }
+    // for(var i =0;i<pop_size;i++){
+    //     if(dist(population.getel(i).pos.x,population.getel(i).pos.y, mouseX,mouseY)< mouseError)
+    //     {
+    //         population.getel(i).clicked();
+    //     }
+    // }
+    if(mouseX>0 &&mouseX<width && mouseY<height && mouseY>0){
+        target.x = mouseX;
+        target.y = mouseY;
+        maxfit =0;
+        gen =1;
+        prev_maxfit=0;
 
+    }
 }
+function getObs(i){
+    return obstacles[i];
+}
+// Doesnt Work -(?)
+// function createObstacles(n_obstacles){
+//     obs = [];
+//     for (var i = 0; i < n_obstacles; i++) {
+//         let rx = random(0,150);
+//         let ry = random(0,150);
+//         let rw = random(100,200);
+//         let rh = random(5,10);
+//         obs.push(new Obstacle(rx,ry,rw,rh));
+//     }
+// }
