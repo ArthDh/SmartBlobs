@@ -10,6 +10,8 @@
 - [] Use tensorflow.js as brain.
 - [x] Implement better selection technique.
 - [x] Implement better fitness function.
+- [x] Add multiple random obstacles.
+- [x] Click to move target.
 
 ## Acknowledgments
 
