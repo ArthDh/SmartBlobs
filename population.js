@@ -9,11 +9,17 @@ class Population{
             this.blobs_pop[i] = new Blob();
         }
     }
-    run(){
+
+    update(){
         for(var i =0 ; i< this.size; i++){
             this.blobs_pop[i].update();
+        }
+    }
+    show(){
+        for(var i =0 ; i< this.size; i++){
             this.blobs_pop[i].show();
         }
+
     }
     evaluate(){
         this.maxfit =0;
@@ -33,7 +39,7 @@ class Population{
         //      this.sum_exp += Math.exp(-this.blobs_pop[i].fitness)
         // }
         for (var i = 0;i<this.size;i++) {
-            this.blobs_pop[i].fitness  /= this.maxfit;
+            this.blobs_pop[i].fitness = map(this.blobs_pop[i].fitness,0, this.maxfit, 0.000001,1);
             // this.blobs_pop[i].fitness = map(this.blobs_pop[i].fitness,0,1,0,10);
             // createP(this.blobs_pop[i].fitness);
         }
@@ -44,7 +50,6 @@ class Population{
 
     getel(i){
         return this.blobs_pop[i];
-
     }
     selection(m_rate){
         var new_pop =[];
